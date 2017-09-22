@@ -35,5 +35,15 @@ module.exports = {
         }
         throw new Error('아이디와 비밀번호가 일치하지 않습니다.')
       })
+  },
+
+  /**
+   * 토큰을 가진 사용자만 접속가능
+   * @param {String} id
+   */
+  getUserById(id) {
+   return knex('user')
+    .where({id})
+    .first()
   }
 }

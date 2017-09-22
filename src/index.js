@@ -1,12 +1,36 @@
 const express = require('express')
 const bodyParser = require('body-parser')
 const jwt = require('jsonwebtoken')
+const expressJwt = require('express-jwt')
 
 const query = require('./query')
 
 const app = express()
 
 app.use(bodyParser.json())
+
+const jwtMiddleware = expressJwt({secret: 'mysecret'})
+
+// 토큰을 가진 사용자만 접속가능
+app.get('/user', jwtMiddleware, (req, res) => {
+  // 서명할때 넣었던 id가 들어온다.
+  query.getUserById(req.user.id)
+    .then(user => {
+      res.send({
+        username: user.username
+      })
+    })
+})
+
+// 토큰이 틀릴 경우 에러 핸들링
+app.use(function (err, req, res, next) {
+  if (err.name === 'UnauthorizedError') {
+    res.status(401).send({
+      error: err.name,
+      message: err.message
+    });
+  }
+});
 
 app.post('/user', (req, res) => {
   // 사용자 생성
