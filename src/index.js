@@ -91,21 +91,52 @@ app.use(function (err, req, res, next) {
   }
 })
 
-// 글 수정하기
+class NotFoundError extends Error {}
+class ForbiddenError extends Error {}
+
+// 글 수정하기(체크박스 체크되는지 안되는지 만든 것)
 app.patch('/todos/:id', jwtMiddleware, (req, res) => {
   const id = req.params.id
   const title = req.body.title
   const complete = req.body.complete
-  query.updateTodoById(id, {title, complete})
-    .then(id => {
-      return query.getTodoById(id)
-    })
+  const user_id = req.user.id
+  query.getTodoById(id)
     .then(todo => {
-      res.send(todo)
+      if(!todo) {
+        // 404 에러 코드
+        throw new NotFoundError('경로를 찾을 수 없습니다.')
+      } else if(todo.user_id !== user_id) {
+        // 지울수 있는 권한이 없다.(403 에러 코드)
+        throw new ForbiddenError('허가되지 않은 접근입니다.')
+        } else {
+          return
+      }
     })
+    .then(() => {
+      query.updateTodoById(id, {title, complete})
+        .then(id => {
+          return query.getTodoById(id)
+        })
+        .then(todo => {
+          res.send(todo)
+        })
+  })
+  .catch(err => {
+    if (err instanceof NotFoundError) {
+      res.status(404),
+      res.send({
+        message:err.message
+      })
+    } else if (err instanceof ForbiddenError) {
+      res.status(403)
+      res.send({
+        message:err.message
+      })
+    }
+  })
 })
 
-// 글 삭제하기 404가 뜨면 요청페이지 확인하기
+// 글 삭제하기 (404가 뜨면 요청페이지 확인하기)
 app.delete('/todos/:id', jwtMiddleware, (req, res) => {
   const id = req.params.id
   query.deleateTodoById(id)
