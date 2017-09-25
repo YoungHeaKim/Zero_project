@@ -62,5 +62,10 @@ module.exports = {
         user_id,
         title
       })
+  },
+  getTodoById(id) {
+    return knex('todo')
+      .where({id})
+      .first()
   }
 }

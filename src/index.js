@@ -2,12 +2,14 @@ const express = require('express')
 const bodyParser = require('body-parser')
 const jwt = require('jsonwebtoken')
 const expressJwt = require('express-jwt')
+const cors = require('cors')
 
 const query = require('./query')
 
 const app = express()
 
 app.use(bodyParser.json())
+app.use(cors())
 
 const jwtMiddleware = expressJwt({secret: 'mysecret'})
 
@@ -65,6 +67,19 @@ app.get('/todos', jwtMiddleware, (req, res) => {
 })
 
 // 해당 사용자가 todo를 생성하는 API 생성
+app.post('/todos', jwtMiddleware, (req, res) => {
+  const user_id = req.user.id
+  const title = req.body.title
+  query.createTodo(user_id, title)
+    .then(([id]) => {
+      return query.getTodoById(id)
+    })
+    .then(todo => {
+      // 201은 잘 만들어 졌다라는 상태 코드이다.
+      res.status(201)
+      res.send(todo)
+    })
+})
 
 // 토큰이 틀릴 경우 에러 핸들링
 app.use(function (err, req, res, next) {
