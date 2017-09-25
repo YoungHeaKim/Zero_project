@@ -81,18 +81,31 @@ app.post('/todos', jwtMiddleware, (req, res) => {
     })
 })
 
-// 토큰이 틀릴 경우 에러 핸들링
-app.use(function (err, req, res, next) {
-  if (err.name === 'UnauthorizedError') {
-    res.status(401).send({
-      error: err.name,
-      message: err.message
-    });
+class NotFoundError extends Error {
+  constructor(message) {
+    super(message)
+    this.name = 'NotFoundError'
   }
-})
+}
+class ForbiddenError extends Error {
+  constructor(message) {
+    super(message)
+    this.name = 'ForbiddenError'
+  }
+}
 
-class NotFoundError extends Error {}
-class ForbiddenError extends Error {}
+// curry 방법 (curry 함수)
+const authorizeTodo = user_id => todo => {
+  if(!todo) {
+    // 404 에러 코드
+    throw new NotFoundError('경로를 찾을 수 없습니다.')
+  } else if (todo.user_id !== user_id) {
+    // 지울수 있는 권한이 없다.(403 에러 코드)
+    throw new ForbiddenError('허가되지 않은 접근입니다.')
+  } else {
+    return
+  }
+}
 
 // 글 수정하기(체크박스 체크되는지 안되는지 만든 것)
 app.patch('/todos/:id', jwtMiddleware, (req, res) => {
@@ -101,28 +114,37 @@ app.patch('/todos/:id', jwtMiddleware, (req, res) => {
   const complete = req.body.complete
   const user_id = req.user.id
   query.getTodoById(id)
-    .then(todo => {
-      if(!todo) {
-        // 404 에러 코드
-        throw new NotFoundError('경로를 찾을 수 없습니다.')
-      } else if(todo.user_id !== user_id) {
-        // 지울수 있는 권한이 없다.(403 에러 코드)
-        throw new ForbiddenError('허가되지 않은 접근입니다.')
-        } else {
-          return
-      }
-    })
+    .then(authorizeTodo(user_id))
     .then(() => {
       query.updateTodoById(id, {title, complete})
-        .then(id => {
-          return query.getTodoById(id)
-        })
+        .then(id => query.getTodoById(id))
         .then(todo => {
           res.send(todo)
         })
   })
-  .catch(err => {
-    if (err instanceof NotFoundError) {
+  .catch(next)
+})
+
+// 글 삭제하기 (404가 뜨면 요청페이지 확인하기)
+app.delete('/todos/:id', jwtMiddleware, (req, res, next) => {
+  const id = req.params.id
+  query.deleateTodoById(id)
+    .then(authorizeTodo(user_id))
+    .then(() => query.deleateTodoById(id))
+    .then(() => {
+      res.end()
+    })
+    .catch(next)
+})
+
+// 토큰이 틀릴 경우 에러 핸들링
+app.use(function (err, req, res, next) {
+  if (err.name === 'UnauthorizedError') {
+    res.status(401).send({
+      error: err.name,
+      message: err.message
+    })
+   } else if(err instanceof NotFoundError) {
       res.status(404),
       res.send({
         message:err.message
@@ -134,16 +156,6 @@ app.patch('/todos/:id', jwtMiddleware, (req, res) => {
       })
     }
   })
-})
-
-// 글 삭제하기 (404가 뜨면 요청페이지 확인하기)
-app.delete('/todos/:id', jwtMiddleware, (req, res) => {
-  const id = req.params.id
-  query.deleateTodoById(id)
-    .then(() => {
-      res.end()
-    })
-})
 
 app.listen(3000, () => {
   console.log(`listening...`)
