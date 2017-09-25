@@ -89,7 +89,23 @@ app.use(function (err, req, res, next) {
       message: err.message
     });
   }
-});
+})
+
+// 글 수정하기
+app.patch('/todos/:id', jwtMiddleware, (req, res) => {
+  const id = req.params.id
+  const title = req.body.title
+  const complete = req.body.complete
+  query.updateTodoById(id, {title, complete})
+    .then(id => {
+      return query.getTodoById(id)
+    })
+    .then(todo => {
+      res.send(todo)
+    })
+})
+
+// 글 삭제하기
 
 app.listen(3000, () => {
   console.log(`listening...`)
