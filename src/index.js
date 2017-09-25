@@ -22,16 +22,6 @@ app.get('/user', jwtMiddleware, (req, res) => {
     })
 })
 
-// 토큰이 틀릴 경우 에러 핸들링
-app.use(function (err, req, res, next) {
-  if (err.name === 'UnauthorizedError') {
-    res.status(401).send({
-      error: err.name,
-      message: err.message
-    });
-  }
-});
-
 app.post('/user', (req, res) => {
   // 사용자 생성
   const {username, password} = req.body
@@ -41,26 +31,50 @@ app.post('/user', (req, res) => {
   const password = req.body.password
   */
   query.createUser(username, password)
-    .then(([id]) => {
-      // JWT 발행
-      const token = jwt.sign({id}, 'mysecret')
-      // 반환
-      res.send({
-        token
-      })
+  .then(([id]) => {
+    // JWT 발행
+    const token = jwt.sign({id}, 'mysecret')
+    // 반환
+    res.send({
+      token
     })
+  })
 })
 
 app.post('/login', (req, res) => {
   const {username, password} = req.body
   query.compareUser(username, password)
-    .then((user) => {
-      const token = jwt.sign({id: user.id}, 'mysecret')
-      res.send({
-        token
-      })
+  .then((user) => {
+    const token = jwt.sign({id: user.id}, 'mysecret')
+    res.send({
+      token
+    })
+  })
+})
+
+// collection API 해당 사용자가 가지고있는 모든 todo를 가지고오는 API
+app.get('/todos', jwtMiddleware, (req, res) => {
+  // jwt 미들웨어는 토큰에 들어있는 값을 req.user에 넣어준다.
+  // 스네이크 케이스를 쓰는 이유는 데이터베이스와의 깔끔한 연동을 위하여 사용
+  const user_id = req.user.id
+  // userId가 소유하고 있는 할 일 목록을 불러와서 반환
+  query.getTodosByUserId(user_id)
+    .then(todos => {
+      res.send(todos)
     })
 })
+
+// 해당 사용자가 todo를 생성하는 API 생성
+
+// 토큰이 틀릴 경우 에러 핸들링
+app.use(function (err, req, res, next) {
+  if (err.name === 'UnauthorizedError') {
+    res.status(401).send({
+      error: err.name,
+      message: err.message
+    });
+  }
+});
 
 app.listen(3000, () => {
   console.log(`listening...`)

@@ -38,12 +38,29 @@ module.exports = {
   },
 
   /**
-   * 토큰을 가진 사용자만 접속가능
+   * id로 유저데이터를 가지고옴
    * @param {String} id
    */
   getUserById(id) {
    return knex('user')
     .where({id})
     .first()
+  },
+
+  /**
+   * 할일의 데이터를 불러옴
+   * @param {String} user_id
+   * REPL
+   */
+  getTodosByUserId(user_id) {
+    return knex('todo')
+      .where({user_id})
+  },
+  createTodo(user_id, title) {
+    return knex('todo')
+      .insert({
+        user_id,
+        title
+      })
   }
 }
