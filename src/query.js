@@ -77,5 +77,10 @@ module.exports = {
     return knex('todo')
       .where({id})
       .update({title, complete})
+  },
+  deleateTodoById(id) {
+    return knex('todo')
+      .where({id})
+      .delete()
   }
 }

@@ -105,7 +105,14 @@ app.patch('/todos/:id', jwtMiddleware, (req, res) => {
     })
 })
 
-// 글 삭제하기
+// 글 삭제하기 404가 뜨면 요청페이지 확인하기
+app.delete('/todos/:id', jwtMiddleware, (req, res) => {
+  const id = req.params.id
+  query.deleateTodoById(id)
+    .then(() => {
+      res.end()
+    })
+})
 
 app.listen(3000, () => {
   console.log(`listening...`)
